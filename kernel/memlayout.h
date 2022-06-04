@@ -65,3 +65,6 @@
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+
+// Used for Copy-On-Write
+#define NUM_PYS_PAGES ((PHYSTOP-KERNBASE) / PGSIZE)

@@ -15,6 +15,9 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
+// Used for Copy-On-Write
+extern uint64 cas(volatile void *addr, int expected, int newval);
+
 // Make a direct-map page table for the kernel.
 pagetable_t
 kvmmake(void)

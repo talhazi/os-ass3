@@ -16,6 +16,9 @@ void kernelvec();
 
 extern int devintr();
 
+// Used for Copy-On-Write
+extern uint64 cas(volatile void *addr, int expected, int newval);
+
 void
 trapinit(void)
 {
