@@ -9,7 +9,7 @@
 #include "riscv.h"
 #include "defs.h"
 
-int references[PA2IDX(PHYSTOP)];
+int references[NUM_PYS_PAGES];
 struct spinlock r_lock;
 
 void freerange(void *pa_start, void *pa_end);
@@ -31,12 +31,42 @@ struct {
   struct run *freelist;
 } kmem;
 
+
+
+int 
+reference_find(uint64 pa)
+{
+  return references[DAN(pa)];
+}
+
+int
+reference_add(uint64 pa)
+{
+  int ref;
+  do{
+      ref = references[DAN(pa)];
+  } while(cas(&references[DAN(pa)] ,ref,ref+1));
+  return ref;
+}
+
+int
+reference_remove(uint64 pa)
+{
+  int ref;
+  do{
+      ref = references[DAN(pa)];
+  } while(cas(&references[DAN(pa)] ,ref,ref-1));
+  return ref;
+}
+
+
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
   initlock(&r_lock, "refereces");
-  memset(references, 0, sizeof(int)*PA2IDX(PHYSTOP));
+  memset(references, 0, sizeof(int)*NUM_PYS_PAGES);
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -60,11 +90,14 @@ kfree(void *pa)
 
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
+  int ref = reference_find((uint64)pa);
 
-  if (reference_remove((uint64)pa) > 0)
+  if (ref > 1){
+    reference_remove((uint64)pa);
     return;
+  }
 
-  references[PA2IDX(pa)] = 0;
+  references[DAN((uint64)pa)] = 0;
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 
@@ -88,7 +121,7 @@ kalloc(void)
   r = kmem.freelist;
 
   if(r) {
-    references[PA2IDX(r)] = 1;
+    references[DAN((uint64)r)] = 1;
     kmem.freelist = r->next;
   }
   release(&kmem.lock);
@@ -96,30 +129,4 @@ kalloc(void)
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
-}
-
-int 
-reference_find(uint64 pa)
-{
-  return references[PA2IDX(pa)];
-}
-
-int
-reference_add(uint64 pa)
-{
-  int ref;
-  acquire(&r_lock);
-  ref = ++references[PA2IDX(pa)];
-  release(&r_lock); 
-  return ref;
-}
-
-int
-reference_remove(uint64 pa)
-{
-  int ref;
-  acquire(&r_lock);
-  ref = --references[PA2IDX(pa)];
-  release(&r_lock);
-  return ref;
 }

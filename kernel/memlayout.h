@@ -68,3 +68,5 @@
 
 // Used for Copy-On-Write
 #define NUM_PYS_PAGES ((PHYSTOP-KERNBASE) / PGSIZE)
+
+#define DAN(PA)((PA-KERNBASE) / PGSIZE)
