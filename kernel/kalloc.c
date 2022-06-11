@@ -36,7 +36,7 @@ struct {
 int 
 reference_find(uint64 pa)
 {
-  return references[DAN(pa)];
+  return references[NUM_PYS_PAGES_PA(pa)];
 }
 
 int
@@ -44,8 +44,8 @@ reference_add(uint64 pa)
 {
   int ref;
   do{
-      ref = references[DAN(pa)];
-  } while(cas(&references[DAN(pa)] ,ref,ref+1));
+      ref = references[NUM_PYS_PAGES_PA(pa)];
+  } while(cas(&references[NUM_PYS_PAGES_PA(pa)] ,ref,ref+1));
   return ref;
 }
 
@@ -54,8 +54,8 @@ reference_remove(uint64 pa)
 {
   int ref;
   do{
-      ref = references[DAN(pa)];
-  } while(cas(&references[DAN(pa)] ,ref,ref-1));
+      ref = references[NUM_PYS_PAGES_PA(pa)];
+  } while(cas(&references[NUM_PYS_PAGES_PA(pa)] ,ref,ref-1));
   return ref;
 }
 
@@ -97,7 +97,7 @@ kfree(void *pa)
     return;
   }
 
-  references[DAN((uint64)pa)] = 0;
+  references[NUM_PYS_PAGES_PA((uint64)pa)] = 0;
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 
@@ -121,7 +121,7 @@ kalloc(void)
   r = kmem.freelist;
 
   if(r) {
-    references[DAN((uint64)r)] = 1;
+    references[NUM_PYS_PAGES_PA((uint64)r)] = 1;
     kmem.freelist = r->next;
   }
   release(&kmem.lock);
